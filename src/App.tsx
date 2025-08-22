@@ -1,8 +1,9 @@
+// src/App.tsx
 import React from 'react';
 import './App.scss';
+import { Clock } from './components/clock';
 
 type State = {
-  today: Date;
   clockName: string;
   hasClock: boolean;
 };
@@ -13,52 +14,42 @@ function getRandomName(): string {
   return `Clock-${value}`;
 }
 
-export class App extends React.Component {
+export class App extends React.Component<{}, State> {
   state: State = {
-    today: new Date(),
     clockName: 'Clock-0',
     hasClock: true,
   };
 
-  // this activate clock
+  private renameIntervalId: number | null = null;
+
   componentDidMount(): void {
-    window.setInterval(() => {
-      this.setState({ today: new Date() });
-      if (this.state.hasClock) {
-        // eslint-disable-next-line no-console
-        console.log(this.state.today.toUTCString().slice(-12, -4));
-      }
-    }, 1000);
+    // Обновление имени каждые 3.3 секунды
+    this.renameIntervalId = window.setInterval(() => {
+      this.setState({ clockName: getRandomName() });
+    }, 3300);
+
+    // Скрытие Clock при правом клике
     document.addEventListener('contextmenu', this.handleContextMenu);
+    // Показ Clock при левом клике
     document.addEventListener('click', this.handleClick);
   }
 
   componentWillUnmount(): void {
-    document.removeEventListener('contextmenu', this.handleContextMenu);
-  }
-
-  componentDidUpdate(prevProps: {}, prevState: State): void {
-    if (prevState.clockName !== this.state.clockName) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Renamed from ${prevState.clockName} to ${this.state.clockName}`,
-      );
+    // Очистка интервалов и слушателей
+    if (this.renameIntervalId) {
+      window.clearInterval(this.renameIntervalId);
     }
+
+    document.removeEventListener('contextmenu', this.handleContextMenu);
+    document.removeEventListener('click', this.handleClick);
   }
 
-  // This code starts a timer
-  timerId = window.setInterval(() => {
-    this.setState({ clockName: getRandomName() });
-  }, 3300);
-
-  //hide clock
-  handleContextMenu = (event: MouseEvent) => {
-    event.preventDefault();
+  private handleContextMenu = (event: MouseEvent): void => {
+    event.preventDefault(); // Запрет контекстного меню
     this.setState({ hasClock: false });
   };
 
-  //show clock
-  handleClick = () => {
+  private handleClick = (): void => {
     this.setState({ hasClock: true });
   };
 
@@ -66,21 +57,8 @@ export class App extends React.Component {
     return (
       <div className="App">
         <h1>React clock</h1>
-        {this.state.hasClock && (
-          <div className="Clock">
-            <strong className="Clock__name">{this.state.clockName}</strong>
-
-            {' time is '}
-
-            <span className="Clock__time">
-              {this.state.today.toUTCString().slice(-12, -4)}
-            </span>
-          </div>
-        )}
+        {this.state.hasClock && <Clock name={this.state.clockName} />}
       </div>
     );
   }
-
-  // // this code stops the timer
-  // window.clearInterval(timerId);
 }
